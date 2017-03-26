@@ -1,9 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import time
-import cookiejar
 import re
 import getpass
+from io import BytesIO
+from PIL import Image
 
 
 sess = requests.session()
@@ -15,42 +16,45 @@ class Pixiv:
         self.passwd = password
         self.req_headers = {
             "Host": "accounts.pixiv.net",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36",
             "Referer": self.base_url,
-            'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
             "Connection": "keep-alive"
         }
         # self.sess = requests.session()
         self.post_key = []
         self.return_to = "http://www.pixiv.net/"
-        self.cook = ""
+        self.cookie = ""
+        self.sess = requests.session()
 
     def login(self):
-        login_html = sess.get(self.base_url)
+        login_html = self.sess.get(self.base_url)
         pattern = re.compile('<input type="hidden".*?value="(.*?)">', re.S)
         result = re.search(pattern, login_html.text)
         self.post_key = result.group(1)
         login_data = {
             "pixiv_id": self.account,
             "password": self.passwd,
-            "post_key": self.post_key,
-            "return_to": self.return_to,
-            "Host": "accounts.pixiv.net",
+            "post_key": self.post_key
+        }
+        tmp = self.sess.post(self.login_url, data=login_data)
+        self.cookie = tmp.headers.get('Set-cookie')
+
+    def get_image(self):
+        test_img_url = "https://i1.pixiv.net/img-original/img/2017/03/23/01/12/06/62049404_p3.png"
+        send = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36",
             "Referer": self.base_url,
-            'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
-            "Connection": "keep-alive"
+            "Cookie": self.cookie
         }
-        tmp = sess.post(self.login_url, data=login_data)
-        self.cook = tmp.cookies
-
+        img = self.sess.get(test_img_url, headers=send)
+        im = Image.open(BytesIO(img.content))
+        im.save("/Users/Zeno/Downloads/tmp.png", 'png')
 
 
 if __name__ == "__main__":
-    account = None
-    passwd  = None
 
     account = input("input account:")
     passwd  = getpass.getpass("input password:")
     tmp = Pixiv(account, passwd)
     tmp.login()
+    tmp.get_image()
+
