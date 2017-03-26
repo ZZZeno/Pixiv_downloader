@@ -7,7 +7,6 @@ from io import BytesIO
 from PIL import Image
 
 
-sess = requests.session()
 class Pixiv:
     def __init__(self, pixiv_id: str, password: str):
         self.base_url = "https://accounts.pixiv.net/login?lang=zh&source=pc&view_type=page&ref=wwwtop_accounts_index"
@@ -19,9 +18,7 @@ class Pixiv:
             "Referer": self.base_url,
             "Connection": "keep-alive"
         }
-        # self.sess = requests.session()
         self.post_key = []
-        self.return_to = "http://www.pixiv.net/"
         self.cookie = ""
         self.sess = requests.session()
 
@@ -38,6 +35,14 @@ class Pixiv:
         tmp = self.sess.post(self.login_url, data=login_data)
         self.cookie = tmp.headers.get('Set-cookie')
 
+    def search_for_painter_by_id(self):
+        painter_page = self.sess.get("http://www.pixiv.net/member.php?id=465133", headers={"Cookie": self.cookie})
+        fav_soup = BeautifulSoup(painter_page.text, 'lxml')
+
+        f = open("sky.htm", 'w')
+        f.write(fav_soup.prettify())
+        f.close()
+
     def get_image(self):
         test_img_url = "https://i1.pixiv.net/img-original/img/2017/03/23/01/12/06/62049404_p3.png"
         send = {
@@ -47,7 +52,7 @@ class Pixiv:
         }
         img = self.sess.get(test_img_url, headers=send)
         im = Image.open(BytesIO(img.content))
-        im.save("/Users/Zeno/Downloads/tmp.png", 'png')
+        im.save("tmp.png", 'png')
 
 
 if __name__ == "__main__":
@@ -57,4 +62,5 @@ if __name__ == "__main__":
     tmp = Pixiv(account, passwd)
     tmp.login()
     tmp.get_image()
+    tmp.search_for_painter_by_id()
 
